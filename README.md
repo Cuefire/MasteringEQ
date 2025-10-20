@@ -1,1 +1,1 @@
-# MasteringEQ
+# SimpleJucePluginTemplate
