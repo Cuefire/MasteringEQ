@@ -64,11 +64,43 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour(juce::Colour::fromString("ff111111"));
     g.fillRect(rest);
 
-    //Frequenzspektrum Bereich färben
+    // Frequenzspektrum Bereich färben
     g.setColour(juce::Colours::orange);
     g.fillRect(spectrogramArea);
 
-    //EQ Bereich färben
+    // Array für vertikale Linien im Spektrogramm
+        juce::Array<float> frequencies
+    {
+        20, 50, 100,
+        200, 500, 1000,
+        2000, 4000, 10000,
+        20000
+    };
+
+    // Display Bereich färben
+    g.setColour(juce::Colours::green);
+    g.fillRect(spectrumDisplayArea);
+
+    // Vertikale Frequenzlinien im Spektrogramm zeichnen
+    g.setColour(juce::Colours::white.withAlpha(0.5f));
+
+    for (auto f : frequencies)
+    {
+        // Frequenzen in 0-1 Bereich umrechnen
+        float normX = juce::mapFromLog10(f, 18.0f, 22500.0f);
+
+        // Normierten Bereich (0-1) auf grünen Bereich skalieren
+        float x = spectrumDisplayArea.getX() + normX * spectrumDisplayArea.getWidth();
+
+        // Vertikale Linie innerhalb des grünen Bereichs zeichnen
+        g.drawVerticalLine(
+            static_cast<int>(x),
+            (float)spectrumDisplayArea.getY(),                          // obere Grenze
+            (float)spectrumDisplayArea.getBottom()                      // untere Grenze
+        );
+    }
+
+    // EQ Bereich färben
     g.setColour(juce::Colours::blue);
     g.fillRect(eqArea);
 }
@@ -81,6 +113,15 @@ void AudioPluginAudioProcessorEditor::resized()
     // Topbar abtrennen
     topBarArea = area.removeFromTop(topBarHeight);
 
+    // Dropdown Position (x-Position, y-Position, x-Breite, y-Höhe)
+    const int barDropW = 220;
+    const int barDropH = 30;
+    genreBox.setBounds(710, 5, 220, 30);
+
+    // Button Position (x-Position, y-Position, x-Breite, y-Höhe)
+    genreErkennenButton.setBounds(10, 5, 120, 30);
+    resetButton.setBounds(940, 5, 50, 30);
+
     // Restbereich unter der Topbar
     auto rest = area;
 
@@ -90,15 +131,36 @@ void AudioPluginAudioProcessorEditor::resized()
     // Innerer Bereich vom Spektrogramm
     spectrogramArea = spectroOuter.reduced(spectrogramMargin);
 
+    // Spektrogramm Display Bereich
+    spectrumDisplayArea = spectrogramArea.removeFromTop(spectrumHeight);
+
+
+
+    /*
+
+
+    // Raster für Frequenzspektrum
+    juce::Array<float> frequencies
+    {
+        20, 30, 40, 50, 100,
+        200, 300, 400, 500, 1000,
+        2000, 3000, 4000, 5000, 10000,
+        20000
+    };
+
+    g.setColour(juce::Colours::white);
+
+    for (auto f : frequencies)
+    {
+        auto normX = juce::mapFromLog10(f, 20.f, 20000.f);
+        g.drawVertivacalLine(getWidth() * normX, 0.f, getHeight());
+    }
+
+    */
+
+
     // EQ Bereich
     eqArea = rest.removeFromTop(eqHeight);
 
-    // Dropdown Position (x-Position, y-Position, x-Breite, y-Höhe)
-    const int barDropW = 220;
-    const int barDropH = 30;
-    genreBox.setBounds(710, 5, 220, 30);
-
-    // Button Position (x-Position, y-Position, x-Breite, y-Höhe)
-    genreErkennenButton.setBounds(10, 5, 120, 30);
-    resetButton.setBounds(940, 5, 50, 30);
+    
 }

@@ -21,8 +21,11 @@ private:
     // Topbar einfügen
     juce::Rectangle<int> topBarArea;
 
-    // Spektrogramm Bereich einfügen
+    // Spektrogramm + Beschriftung Bereich einfügen
     juce::Rectangle<int> spectrogramArea;
+
+    // Spektrogramm Display Bereich für Kurve
+    juce::Rectangle<int> spectrumDisplayArea;
 
     // EQ Bereich einfügen
     juce::Rectangle<int> eqArea;
@@ -32,6 +35,8 @@ private:
     static constexpr int spectrogramOuterHeight = 430;
     static constexpr int spectrogramMargin = 10;
     static constexpr int eqHeight = 180;
+    static constexpr int spectrumHeight = 390;
+    static constexpr int spectrumBottomMargin = 20;
 
     // Dropdown für Genres
     juce::ComboBox genreBox;
