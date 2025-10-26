@@ -18,5 +18,21 @@ private:
     // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
 
+    // Topbar einfügen
+    juce::Rectangle<int> topBarArea;
+    static constexpr int topBarHeight = 40; // Höhe der Topbar für Buttons und Dropdown
+
+    // Dropdown für Genres
+    juce::ComboBox genreBox;
+
+    // Button für Genre erkennen
+    juce::TextButton genreErkennenButton;
+
+    // Button für Reset
+    juce::TextButton resetButton;
+
+    // Hintergrundbild: Spektogramm
+    juce::Image background;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };
