@@ -71,10 +71,9 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Array für vertikale Linien im Spektrogramm
         juce::Array<float> frequencies
     {
-        20, 50, 100,
+        40, 100,
         200, 500, 1000,
         2000, 4000, 10000,
-        20000
     };
 
     // Display Bereich färben
@@ -84,10 +83,16 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Vertikale Frequenzlinien im Spektrogramm zeichnen
     g.setColour(juce::Colours::white.withAlpha(0.5f));
 
+    // Schriftgröße für Achsenbeschriftung
+    g.setFont(15.0f);
+
+    // Y-Position für Achsenbeschriftung
+    float textY = (float)spectrumDisplayArea.getBottom() + 3.0f;
+
     for (auto f : frequencies)
     {
         // Frequenzen in 0-1 Bereich umrechnen
-        float normX = juce::mapFromLog10(f, 18.0f, 22500.0f);
+        float normX = juce::mapFromLog10(f, 20.0f, 20000.0f);
 
         // Normierten Bereich (0-1) auf grünen Bereich skalieren
         float x = spectrumDisplayArea.getX() + normX * spectrumDisplayArea.getWidth();
@@ -97,6 +102,24 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
             static_cast<int>(x),
             (float)spectrumDisplayArea.getY(),                          // obere Grenze
             (float)spectrumDisplayArea.getBottom()                      // untere Grenze
+        );
+
+        // Achsenbeschriftung einfügen
+        juce::String text;
+        if (f >= 1000.0f)
+            text = juce::String(f / 1000.0f) + "k";
+        else
+            text = juce::String((int)f);
+
+        // Achsenbeschriftung einfügen
+        g.drawFittedText(
+            text,
+            (int)(x - 15), // x-Position: Nach links verschieben
+            (int)textY, // y-Position
+            30, // Textbox-Breite
+            15, // Textbox-Höhe
+            juce::Justification::centred, // zentrieren
+            1 // max. Anzahl an Zeilen
         );
     }
 
@@ -133,31 +156,6 @@ void AudioPluginAudioProcessorEditor::resized()
 
     // Spektrogramm Display Bereich
     spectrumDisplayArea = spectrogramArea.removeFromTop(spectrumHeight);
-
-
-
-    /*
-
-
-    // Raster für Frequenzspektrum
-    juce::Array<float> frequencies
-    {
-        20, 30, 40, 50, 100,
-        200, 300, 400, 500, 1000,
-        2000, 3000, 4000, 5000, 10000,
-        20000
-    };
-
-    g.setColour(juce::Colours::white);
-
-    for (auto f : frequencies)
-    {
-        auto normX = juce::mapFromLog10(f, 20.f, 20000.f);
-        g.drawVertivacalLine(getWidth() * normX, 0.f, getHeight());
-    }
-
-    */
-
 
     // EQ Bereich
     eqArea = rest.removeFromTop(eqHeight);
