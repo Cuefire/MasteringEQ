@@ -6,9 +6,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     : AudioProcessorEditor (&p), processorRef (p)
 {
     juce::ignoreUnused (processorRef);
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-
 
     // Fenster Einstellungen
     //x-Breite, y-Höhe
@@ -36,6 +33,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
     resetButton.setButtonText("Reset");
     resetButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
+
+    // Testslider
+    // Testslider konfigurieren
+    testSlider.setSliderStyle(juce::Slider::LinearVertical);
+    testSlider.setRange(-12.0, 12.0, 0.1);
+    testSlider.setValue(0.0);
+    testSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    testSlider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
+    testSlider.setColour(juce::Slider::trackColourId, juce::Colours::lightgrey);
+
+    // Sichtbar machen
+    addAndMakeVisible(testSlider);
 
     // Sichtbar machen
     addAndMakeVisible(genreBox);
@@ -71,9 +80,9 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Array für vertikale Linien im Spektrogramm
         juce::Array<float> frequencies
     {
-        40, 100,
+        20, 40, 100,
         200, 500, 1000,
-        2000, 4000, 10000,
+        2000, 4000, 10000, 20000
     };
 
     // Display Bereich färben
@@ -92,7 +101,7 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     for (auto f : frequencies)
     {
         // Frequenzen in 0-1 Bereich umrechnen
-        float normX = juce::mapFromLog10(f, 20.0f, 20000.0f);
+        float normX = juce::mapFromLog10(f, 17.0f, 23700.0f);
 
         // Normierten Bereich (0-1) auf grünen Bereich skalieren
         float x = spectrumDisplayArea.getX() + normX * spectrumDisplayArea.getWidth();
@@ -126,6 +135,10 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // EQ Bereich färben
     g.setColour(juce::Colours::blue);
     g.fillRect(eqArea);
+
+    // EQ Beschriftungsbereich
+    g.setColour(juce::Colours::red);
+    g.fillRect(eqLabelArea);
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -159,6 +172,24 @@ void AudioPluginAudioProcessorEditor::resized()
 
     // EQ Bereich
     eqArea = rest.removeFromTop(eqHeight);
+
+    // EQ Fader mit Array erzeugen
+    const std::array<float, 31> eqFrequencies{
+    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160,
+    200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600,
+    2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
+    };
+
+    // Testslider
+    int sliderWidth = 20;
+    int sliderHeight = eqArea.getHeight() - 40; // oben 10px, unten 30px Platz
+    int sliderX = eqArea.getCentreX() - sliderWidth / 2; // mittig im EQ-Bereich
+    int sliderY = eqArea.getY() + 10;
+
+    testSlider.setBounds(sliderX, sliderY, sliderWidth, sliderHeight);
+
+    // EQ Beschriftung
+    eqLabelArea = eqArea.removeFromBottom(30);
 
     
 }
