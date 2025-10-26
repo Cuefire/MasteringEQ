@@ -20,7 +20,18 @@ private:
 
     // Topbar einfügen
     juce::Rectangle<int> topBarArea;
+
+    // Spektrogramm Bereich einfügen
+    juce::Rectangle<int> spectrogramArea;
+
+    // EQ Bereich einfügen
+    juce::Rectangle<int> eqArea;
+
+    // Layout Konstanten
     static constexpr int topBarHeight = 40; // Höhe der Topbar für Buttons und Dropdown
+    static constexpr int spectrogramOuterHeight = 430;
+    static constexpr int spectrogramMargin = 10;
+    static constexpr int eqHeight = 180;
 
     // Dropdown für Genres
     juce::ComboBox genreBox;

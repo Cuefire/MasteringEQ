@@ -11,7 +11,8 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 
 
     // Fenster Einstellungen
-    setSize(700, 450);
+    //x-Breite, y-Höhe
+    setSize(1000, 650);
     setResizable(false, false);
 
     // Dropdown
@@ -56,28 +57,48 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Layout in der Topbar, Abstand Links/Rechts, Oben/Unten
     auto top = topBarArea.reduced(12, 8);
 
-    // Layout Area für das Spektogramm
-    auto area = getLocalBounds();
-    auto rest = area.withY(topBarArea.getBottom());
+    // Layout Area für alles unter der Topbar
+    auto rest = getLocalBounds().withY(topBarArea.getBottom());
 
     // Spektogramm Hintergrundfarbe
     g.setColour(juce::Colour::fromString("ff111111"));
     g.fillRect(rest);
+
+    //Frequenzspektrum Bereich färben
+    g.setColour(juce::Colours::orange);
+    g.fillRect(spectrogramArea);
+
+    //EQ Bereich färben
+    g.setColour(juce::Colours::blue);
+    g.fillRect(eqArea);
 }
 
 void AudioPluginAudioProcessorEditor::resized()
 {
-    // Bereiche definieren
-    auto area = getLocalBounds(); // Area ist der Hauptbereich
-    topBarArea = area.removeFromTop(topBarHeight); // Zieht die TopBar vom Hauptbereich ab
-    auto spectrogramArea = area;
+    // Hauptbereich "Area"
+    auto area = getLocalBounds();
 
-    // Dropdown Position
+    // Topbar abtrennen
+    topBarArea = area.removeFromTop(topBarHeight);
+
+    // Restbereich unter der Topbar
+    auto rest = area;
+
+    // Äußerer Bereich vom Spektrogramm
+    auto spectroOuter = rest.removeFromTop(spectrogramOuterHeight);
+
+    // Innerer Bereich vom Spektrogramm
+    spectrogramArea = spectroOuter.reduced(spectrogramMargin);
+
+    // EQ Bereich
+    eqArea = rest.removeFromTop(eqHeight);
+
+    // Dropdown Position (x-Position, y-Position, x-Breite, y-Höhe)
     const int barDropW = 220;
     const int barDropH = 30;
-    genreBox.setBounds(410, 5, 220, 30);
+    genreBox.setBounds(710, 5, 220, 30);
 
     // Button Position (x-Position, y-Position, x-Breite, y-Höhe)
     genreErkennenButton.setBounds(10, 5, 120, 30);
-    resetButton.setBounds(640, 5, 50, 30);
+    resetButton.setBounds(940, 5, 50, 30);
 }
