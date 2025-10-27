@@ -34,17 +34,18 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     resetButton.setButtonText("Reset");
     resetButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
 
-    // Testslider
-    // Testslider konfigurieren
-    testSlider.setSliderStyle(juce::Slider::LinearVertical);
-    testSlider.setRange(-12.0, 12.0, 0.1);
-    testSlider.setValue(0.0);
-    testSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    testSlider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    testSlider.setColour(juce::Slider::trackColourId, juce::Colours::lightgrey);
+    // Silder konfigurieren
+    for (int i = 0; i < 31; i++)
+    {
+        eqSlider[i].setSliderStyle(juce::Slider::LinearVertical);
+        eqSlider[i].setRange(-12.0, 12.0, 0.1);
+        eqSlider[i].setValue(0.0);
+        eqSlider[i].setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        eqSlider[i].setColour(juce::Slider::thumbColourId, juce::Colours::white);
+        eqSlider[i].setColour(juce::Slider::trackColourId, juce::Colours::lightgrey);
 
-    // Sichtbar machen
-    addAndMakeVisible(testSlider);
+        addAndMakeVisible(eqSlider[i]);
+    }
 
     // Sichtbar machen
     addAndMakeVisible(genreBox);
@@ -76,14 +77,6 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Frequenzspektrum Bereich färben
     g.setColour(juce::Colours::orange);
     g.fillRect(spectrogramArea);
-
-    // Array für vertikale Linien im Spektrogramm
-        juce::Array<float> frequencies
-    {
-        20, 40, 100,
-        200, 500, 1000,
-        2000, 4000, 10000, 20000
-    };
 
     // Display Bereich färben
     g.setColour(juce::Colours::green);
@@ -139,6 +132,46 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // EQ Beschriftungsbereich
     g.setColour(juce::Colours::red);
     g.fillRect(eqLabelArea);
+
+    // Slider Beschriftung
+    g.setColour(juce::Colours::white.withAlpha(0.5f));
+    g.setFont(14.0f);
+
+    for (int i = 0; i < eqFrequencies.size(); i++)
+    {
+        // Positionen normieren
+        float normX = juce::mapFromLog10(eqFrequencies[i], 16.0f, 25500.f);
+
+        // Auf den EQ Bereich skalieren
+        int x = eqArea.getX() + static_cast<int>(normX * eqArea.getWidth());
+
+        // Textdarstellung anpassen
+        juce::String label;
+        if (eqFrequencies[i] >= 1000.0f)
+        {
+            float valueInK = eqFrequencies[i] / 1000.0f;
+        
+            if (valueInK >= 10.0f)
+                label = juce::String((int)valueInK) + "k";
+            else
+                label = juce::String(valueInK, 1) + "k";
+        }
+        else
+        {
+            label = juce::String((int)eqFrequencies[i]);
+        }
+
+        // Text einfügen
+        g.drawFittedText(
+            label,
+            x - 20, // x-Position: Nach links verschieben
+            eqLabelArea.getY() + 5, // y-Position: Oberer Rand vom roten Bereich + kleiner Abstand
+            40, // Textbox-Breite
+            20, // Textbox-Höhe
+            juce::Justification::centred, // zentrieren
+            1 // max. Anzahl an Zeilen
+        );
+    }
 }
 
 void AudioPluginAudioProcessorEditor::resized()
@@ -173,21 +206,26 @@ void AudioPluginAudioProcessorEditor::resized()
     // EQ Bereich
     eqArea = rest.removeFromTop(eqHeight);
 
-    // EQ Fader mit Array erzeugen
-    const std::array<float, 31> eqFrequencies{
-    20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160,
-    200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600,
-    2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
-    };
+    // Silder
+    for (int i = 0; i < 31; ++i)
+    {
+        // Frequenz in log-Skala umrechnen
+        float normX = juce::mapFromLog10(eqFrequencies[i], 16.0f, 25500.0f);
 
-    // Testslider
-    int sliderWidth = 20;
-    int sliderHeight = eqArea.getHeight() - 40; // oben 10px, unten 30px Platz
-    int sliderX = eqArea.getCentreX() - sliderWidth / 2; // mittig im EQ-Bereich
-    int sliderY = eqArea.getY() + 10;
+        // Auf den Bereich vom EQ skalieren
+        int x = eqArea.getX() + static_cast<int>(normX * eqArea.getWidth());
 
-    testSlider.setBounds(sliderX, sliderY, sliderWidth, sliderHeight);
+        int sliderWidth = 16;
+        int sliderHeight = eqArea.getHeight() - 40;
 
+        eqSlider[i].setBounds(
+            x - sliderWidth / 2,
+            eqArea.getY() + 10,
+            sliderWidth,
+            sliderHeight
+        );
+    }
+    
     // EQ Beschriftung
     eqLabelArea = eqArea.removeFromBottom(30);
 

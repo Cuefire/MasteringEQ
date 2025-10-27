@@ -6,11 +6,11 @@
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
 {
 public:
-    explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
+    explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&);
     ~AudioPluginAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics&) override;
     void resized() override;
 
 private:
@@ -36,14 +36,30 @@ private:
     // Spektrogramm Display Bereich für Kurve
     juce::Rectangle<int> spectrumDisplayArea;
 
+    // EQ Fader mit Array erzeugen
+    const std::array<float, 31> eqFrequencies
+    {
+        20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160,
+        200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600,
+        2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
+    };
+
+    // Array für vertikale Linien im Spektrogramm
+    juce::Array<float> frequencies
+    {
+        20, 40, 100,
+        200, 500, 1000,
+        2000, 4000, 10000, 20000
+    };
+
     // Hintergrundbild: Spektogramm
     juce::Image background;
 
     // EQ Bereich einfügen
     juce::Rectangle<int> eqArea;
 
-    // Testslider
-    juce::Slider testSlider;
+    // Silder erstellen
+    juce::Slider eqSlider[31];
 
     // EQ Beschriftungsbereich
     juce::Rectangle<int> eqLabelArea;
