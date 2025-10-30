@@ -13,6 +13,9 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    // Referenzkurve laden
+    void loadReferenceCurve(const juce::String& filename);
+
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
@@ -51,6 +54,18 @@ private:
         200, 500, 1000,
         2000, 4000, 10000, 20000
     };
+
+    // Struct für Referenzkurven
+    struct ReferenceBand
+    {
+        float freq; // Frequenz in Hz
+        float p10;  // Unteres 10%-Perzentil
+        float median; // Median (Zentralwert)
+        float p90; // Oberes 90%-Perzentil
+    };
+
+    // Container für Frequenzbänder der Referenzkurven
+    std::vector<ReferenceBand> referenceBands;
 
     // Hintergrundbild: Spektogramm
     juce::Image background;

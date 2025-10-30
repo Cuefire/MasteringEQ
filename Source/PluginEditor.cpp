@@ -1,4 +1,4 @@
-#include "PluginProcessor.h"
+ï»¿#include "PluginProcessor.h"
 #include "PluginEditor.h"
 
 //==============================================================================
@@ -8,9 +8,12 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     juce::ignoreUnused (processorRef);
 
     // Fenster Einstellungen
-    //x-Breite, y-Höhe
+    //x-Breite, y-HÃ¶he
     setSize(1000, 650);
     setResizable(false, false);
+
+    // Testreferenzkurve laden
+    loadReferenceCurve("test.json");
 
     // Dropdown
     genreBox.setTextWhenNothingSelected("Genre auswahlen...");
@@ -20,7 +23,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     genreBox.addItem("EDM", 4);
     genreBox.addItem("Klassik", 5);
 
-    // Dropdown: Auf Änderung reagieren
+    // Dropdown: Auf Ã„nderung reagieren
     genreBox.onChange = [this]
         {
             const int id = genreBox.getSelectedId();
@@ -53,6 +56,56 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(resetButton);
 }
 
+// Referenzkurve laden
+void AudioPluginAudioProcessorEditor::loadReferenceCurve(const juce::String& filename)
+{
+    // Speicher fÃ¼r Kurve leeren
+    referenceBands.clear();
+
+    // File laden
+    juce::File refFileBase = juce::File::getSpecialLocation(
+        juce::File::currentApplicationFile);
+
+        // Solange im Pfad nach oben gehen, bis "build"
+        for (int i = 0; i < 8; ++i)
+        {
+            if (refFileBase.getFileName().equalsIgnoreCase("build"))
+                break;
+
+            refFileBase = refFileBase.getParentDirectory();
+        }
+
+        // Von der "build" Ebene aus laden
+        juce::File refFile = refFileBase
+        .getChildFile("ReferenceCurves")
+        .getChildFile(filename);
+
+    // Inhalt von JSON in String laden
+    juce::String fileContent = refFile.loadFileAsString();
+
+    // Analysiert Text aus fileContent und erstellt dynamisches var
+    juce::var jsonData = juce::JSON::parse(fileContent);
+
+    // BÃ¤nder aus JSON erstellen
+    auto bands = jsonData["bands"];
+
+    // BÃ¤nder erstellen
+    for (auto& b : *bands.getArray())
+    {
+        // Neues Datenobjekt
+        ReferenceBand rb;
+
+        // BÃ¤nder durchlaufen
+        rb.freq = (float)b["freq"];
+        rb.p10 = (float)b["p10"];
+        rb.median = (float)b["median"];
+        rb.p90 = (float)b["p90"];
+
+        // Band an Vektor anhÃ¤ngen
+        referenceBands.push_back(rb);
+    }
+}
+
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 {
 }
@@ -67,28 +120,28 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Layout in der Topbar, Abstand Links/Rechts, Oben/Unten
     auto top = topBarArea.reduced(12, 8);
 
-    // Layout Area für alles unter der Topbar
+    // Layout Area fÃ¼r alles unter der Topbar
     auto rest = getLocalBounds().withY(topBarArea.getBottom());
 
     // Spektogramm Hintergrundfarbe
     g.setColour(juce::Colour::fromString("ff111111"));
     g.fillRect(rest);
 
-    // Frequenzspektrum Bereich färben
+    // Frequenzspektrum Bereich fÃ¤rben
     g.setColour(juce::Colours::orange);
     g.fillRect(spectrogramArea);
 
-    // Display Bereich färben
+    // Display Bereich fÃ¤rben
     g.setColour(juce::Colours::green);
     g.fillRect(spectrumDisplayArea);
 
     // Vertikale Frequenzlinien im Spektrogramm zeichnen
     g.setColour(juce::Colours::white.withAlpha(0.5f));
 
-    // Schriftgröße für Achsenbeschriftung
+    // SchriftgrÃ¶ÃŸe fÃ¼r Achsenbeschriftung
     g.setFont(15.0f);
 
-    // Y-Position für Achsenbeschriftung
+    // Y-Position fÃ¼r Achsenbeschriftung
     float textY = (float)spectrumDisplayArea.getBottom() + 3.0f;
 
     for (auto f : frequencies)
@@ -96,36 +149,51 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
         // Frequenzen in 0-1 Bereich umrechnen
         float normX = juce::mapFromLog10(f, 17.0f, 23700.0f);
 
-        // Normierten Bereich (0-1) auf grünen Bereich skalieren
+        // Normierten Bereich (0-1) auf grÃ¼nen Bereich skalieren
         float x = spectrumDisplayArea.getX() + normX * spectrumDisplayArea.getWidth();
 
-        // Vertikale Linie innerhalb des grünen Bereichs zeichnen
+        // Vertikale Linie innerhalb des grÃ¼nen Bereichs zeichnen
         g.drawVerticalLine(
             static_cast<int>(x),
             (float)spectrumDisplayArea.getY(),                          // obere Grenze
             (float)spectrumDisplayArea.getBottom()                      // untere Grenze
         );
 
-        // Achsenbeschriftung einfügen
+        // Achsenbeschriftung einfÃ¼gen
         juce::String text;
         if (f >= 1000.0f)
             text = juce::String(f / 1000.0f) + "k";
         else
             text = juce::String((int)f);
 
-        // Achsenbeschriftung einfügen
+        // Achsenbeschriftung einfÃ¼gen
         g.drawFittedText(
             text,
             (int)(x - 15), // x-Position: Nach links verschieben
             (int)textY, // y-Position
             30, // Textbox-Breite
-            15, // Textbox-Höhe
+            15, // Textbox-HÃ¶he
             juce::Justification::centred, // zentrieren
             1 // max. Anzahl an Zeilen
         );
     }
 
-    // EQ Bereich färben
+    // ReferenzbÃ¤nder zeichnen
+    if (!referenceBands.empty())
+    {
+        g.setColour(juce::Colours::white);
+        g.setFont(juce::Font(15.0f));
+
+        g.drawFittedText("Referenzkurve geladen: " + juce::String(referenceBands.size()) + " Bander",
+           10, 60, 400, 20, juce::Justification::left, 1);
+    }
+    else
+    {
+        g.setColour(juce::Colours::red);
+        g.drawFittedText("Keine Referenzkurve geladen!", 10, 60, 400, 20, juce::Justification::left, 1);
+    }
+
+    // EQ Bereich fÃ¤rben
     g.setColour(juce::Colours::blue);
     g.fillRect(eqArea);
 
@@ -161,13 +229,13 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
             label = juce::String((int)eqFrequencies[i]);
         }
 
-        // Text einfügen
+        // Text einfÃ¼gen
         g.drawFittedText(
             label,
             x - 20, // x-Position: Nach links verschieben
             eqLabelArea.getY() + 5, // y-Position: Oberer Rand vom roten Bereich + kleiner Abstand
             40, // Textbox-Breite
-            20, // Textbox-Höhe
+            20, // Textbox-HÃ¶he
             juce::Justification::centred, // zentrieren
             1 // max. Anzahl an Zeilen
         );
@@ -182,19 +250,19 @@ void AudioPluginAudioProcessorEditor::resized()
     // Topbar abtrennen
     topBarArea = area.removeFromTop(topBarHeight);
 
-    // Dropdown Position (x-Position, y-Position, x-Breite, y-Höhe)
+    // Dropdown Position (x-Position, y-Position, x-Breite, y-HÃ¶he)
     const int barDropW = 220;
     const int barDropH = 30;
     genreBox.setBounds(710, 5, 220, 30);
 
-    // Button Position (x-Position, y-Position, x-Breite, y-Höhe)
+    // Button Position (x-Position, y-Position, x-Breite, y-HÃ¶he)
     genreErkennenButton.setBounds(10, 5, 120, 30);
     resetButton.setBounds(940, 5, 50, 30);
 
     // Restbereich unter der Topbar
     auto rest = area;
 
-    // Äußerer Bereich vom Spektrogramm
+    // Ã„uÃŸerer Bereich vom Spektrogramm
     auto spectroOuter = rest.removeFromTop(spectrogramOuterHeight);
 
     // Innerer Bereich vom Spektrogramm
