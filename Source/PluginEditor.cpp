@@ -181,17 +181,75 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
     // Referenzbänder zeichnen
     if (!referenceBands.empty())
     {
-        g.setColour(juce::Colours::white);
-        g.setFont(juce::Font(15.0f));
+        // Konstanten für die Skalierung
+        const float minFreq = 20.0f;
+        const float maxFreq = 20000.0f;
+        const float minDb = -25.0f;
+        const float maxDb = 5.0f;
 
-        g.drawFittedText("Referenzkurve geladen: " + juce::String(referenceBands.size()) + " Bander",
-           10, 60, 400, 20, juce::Justification::left, 1);
+        // Pfade für die Linienpunkte
+        juce::Path pathP10;
+        juce::Path pathP90;
+        juce::Path pathMedian;
+
+        // Überprüfen, ob aktueller Punkt der erste ist
+        bool firstPoint = true;
+
+        // Schleife für alle Bänder
+        for (const auto& band : referenceBands)
+        {
+            // x-Position normieren
+            float normX = juce::mapFromLog10(band.freq, minFreq, maxFreq);
+
+            // x-Position auf Fenster skalieren
+            float x = spectrumDisplayArea.getX() + normX * spectrumDisplayArea.getWidth();
+
+            // y-Positionen invertieren (oben = laut)
+            float yP10 = juce::jmap(band.p10, minDb, maxDb,
+                (float)spectrumDisplayArea.getBottom(),
+                (float)spectrumDisplayArea.getY());
+
+            float yMedian = juce::jmap(band.median, minDb, maxDb,
+                (float)spectrumDisplayArea.getBottom(),
+                (float)spectrumDisplayArea.getY());
+
+            float yP90 = juce::jmap(band.p90, minDb, maxDb,
+                (float)spectrumDisplayArea.getBottom(),
+                (float)spectrumDisplayArea.getY());
+
+            // Neue Linie beim ersten Punkt der JSON Datei
+            if (firstPoint)
+            {
+                pathP10.startNewSubPath(x, yP10);
+                pathP90.startNewSubPath(x, yP90);
+                pathMedian.startNewSubPath(x, yMedian);
+                firstPoint = false;
+            }
+            // Sonst Linie verbinden
+            else
+            {
+                pathP10.lineTo(x, yP10);
+                pathP90.lineTo(x, yP90);
+                pathMedian.lineTo(x, yMedian);
+            }
+        }
+
+        // Zeichnen der Referenlinien
+        g.setColour(juce::Colours::blue.withAlpha(0.6f)); // untere (p10)
+        g.strokePath(pathP10, juce::PathStrokeType(1.5f));
+
+        g.setColour(juce::Colours::blue.withAlpha(0.6f)); // obere (p90)
+        g.strokePath(pathP90, juce::PathStrokeType(1.5f));
+
+        g.setColour(juce::Colours::grey); // Median
+        g.strokePath(pathMedian, juce::PathStrokeType(2.0f));
     }
-    else
-    {
-        g.setColour(juce::Colours::red);
-        g.drawFittedText("Keine Referenzkurve geladen!", 10, 60, 400, 20, juce::Justification::left, 1);
-    }
+
+
+
+
+
+
 
     // EQ Bereich färben
     g.setColour(juce::Colours::blue);
