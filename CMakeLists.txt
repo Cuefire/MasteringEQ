@@ -83,3 +83,6 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_warning_flags
 )
 
+# ReferenceCurves Ordner mit in den lokalen Build Ordner kopieren.
+file(COPY "${CMAKE_SOURCE_DIR}/ReferenceCurves"
+     DESTINATION "${CMAKE_BINARY_DIR}")
