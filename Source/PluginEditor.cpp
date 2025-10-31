@@ -12,9 +12,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     setSize(1000, 650);
     setResizable(false, false);
 
-    // Testreferenzkurve laden
-    loadReferenceCurve("test.json");
-
     // Dropdown
     genreBox.setTextWhenNothingSelected("Genre auswahlen...");
     genreBox.addItem("Pop", 1);
@@ -22,11 +19,46 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     genreBox.addItem("Rock", 3);
     genreBox.addItem("EDM", 4);
     genreBox.addItem("Klassik", 5);
+    genreBox.addItem("Test", 6);
 
-    // Dropdown: Auf Änderung reagieren
+    // Dropdown: JSON laden und auf Änderung reagieren
     genreBox.onChange = [this]
         {
             const int id = genreBox.getSelectedId();
+
+            switch (id)
+            {
+            case 1: // Pop
+                loadReferenceCurve("Pop.json");
+                break;
+
+            case 2: // HipHop
+                loadReferenceCurve("HipHop.json");
+                break;
+
+            case 3: // Rock
+                loadReferenceCurve("Rock.json");
+                break;
+
+            case 4: // EDM
+                loadReferenceCurve("EDM.json");
+                break;
+
+            case 5: // Klassik
+                loadReferenceCurve("Klassik.json");
+                break;
+
+            case 6: // Test
+                loadReferenceCurve("test.json");
+                break;
+
+            default:
+                // Wenn nichts ausgewählt ist oder "leer"
+                referenceBands.clear(); // Referenzkurve löschen
+                break;
+            }
+
+            // Nach jeder Änderung neu zeichnen
             repaint();
         };
 
