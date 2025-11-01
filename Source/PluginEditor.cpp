@@ -10,6 +10,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // Fenster Einstellungen
     //x-Breite, y-Höhe
     setSize(1000, 650);
+    startTimerHz(30);  // Update display at 30 FPS
     setResizable(false, false);
 
     // Dropdown
@@ -169,6 +170,9 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 
     // Vertikale Frequenzlinien im Spektrogramm zeichnen
     g.setColour(juce::Colours::white.withAlpha(0.5f));
+
+    // Draw the spectrum
+    drawFrame(g);
 
     // Schriftgröße für Achsenbeschriftung
     g.setFont(15.0f);
@@ -387,5 +391,67 @@ void AudioPluginAudioProcessorEditor::resized()
     // EQ Beschriftung
     eqLabelArea = eqArea.removeFromBottom(30);
 
+
     
+}
+
+// Timer callback - updates the display
+void AudioPluginAudioProcessorEditor::timerCallback()
+{
+    // Check if new FFT data is available
+    if (processorRef.getNextFFTBlockReady())
+    {
+        // Process the FFT data for display
+        processorRef.drawNextFrameOfSpectrum();
+        processorRef.setNextFFTBlockReady(false); // Reset flag
+        repaint(); // Trigger redraw
+    }
+}
+
+// Draws the spectrum line - KORRIGIERTE VERSION
+void AudioPluginAudioProcessorEditor::drawFrame(juce::Graphics& g)
+{
+    auto scopeData = processorRef.getScopeData();
+    auto scopeSize = processorRef.getScopeSize();
+
+    if (scopeData == nullptr || scopeSize == 0)
+        return;
+
+    // Bereich für das Spektrum definieren
+    auto area = spectrumDisplayArea;
+
+    // Pfad für das Spektrum erstellen
+    juce::Path spectrumPath;
+
+    bool firstPoint = true;
+
+    // Pfad durch alle Punkte zeichnen mit KORREKTER Skalierung
+    for (int i = 0; i < scopeSize; ++i)
+    {
+
+        // Dies ist die GLEICHE Berechnung wie in drawNextFrameOfSpectrum:
+        float skewedProportionX = 1.0f - std::exp(std::log(1.0f - (float)i / (float)scopeSize) * 0.2f);
+
+        // X-Position auf den spectrumDisplayArea skalieren
+        float x = area.getX() + skewedProportionX * area.getWidth();
+
+        // Y-Position aus FFT-Daten (invertiert: oben = hohe Amplitude)
+        float y = juce::jmap(scopeData[i], 0.0f, 1.0f,
+            (float)area.getBottom(), (float)area.getY());
+
+        if (firstPoint)
+        {
+            spectrumPath.startNewSubPath(x, y);
+            firstPoint = false;
+        }
+        else
+        {
+            spectrumPath.lineTo(x, y);
+        }
+    }
+
+    // Spektrum-Linie zeichnen
+    g.setColour(juce::Colours::cyan);
+    g.strokePath(spectrumPath, juce::PathStrokeType(2.0f));
+
 }

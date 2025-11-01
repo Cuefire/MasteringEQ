@@ -10,12 +10,17 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), forwardFFT(fftOrder), window(fftSize, 
+                           juce::dsp::WindowingFunction<float>::hann)
 {
+
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
+    juce::zeromem(fifo, sizeof(fifo));
+    juce::zeromem(fftData, sizeof(fftData));
+    juce::zeromem(scopeData, sizeof(scopeData));
 }
 
 //==============================================================================
@@ -121,37 +126,78 @@ bool AudioPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layou
   #endif
 }
 
-void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
-                                              juce::MidiBuffer& midiMessages)
+void AudioPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused (midiMessages);
-
+    // Clear any unused channels
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    for (auto i = 1; i < buffer.getNumChannels(); ++i)
+        buffer.clear(i, 0, buffer.getNumSamples());
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    // Process audio samples for spectrum analysis (use first channel only)
+    if (getTotalNumInputChannels() > 0)
     {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
+        auto* channelData = buffer.getReadPointer(0); // Get pointer to first channel
+        auto numSamples = buffer.getNumSamples();
+
+        // Push each sample into our FIFO buffer for FFT processing
+        for (auto i = 0; i < numSamples; ++i)
+            pushNextSampleIntoFifo(channelData[i]);
     }
 }
+
+// Collects audio samples into FIFO buffer
+void AudioPluginAudioProcessor::pushNextSampleIntoFifo(float sample) noexcept
+{
+    // When FIFO is full, prepare data for FFT processing
+    if (fifoIndex == fftSize)
+    {
+        if (!nextFFTBlockReady) // Only process if previous FFT is done
+        {
+            juce::zeromem(fftData, sizeof(fftData));        // Clear FFT buffer
+            memcpy(fftData, fifo, sizeof(fifo));           // Copy audio data to FFT buffer
+            nextFFTBlockReady = true;                        // Signal that FFT data is ready
+        }
+        fifoIndex = 0; // Reset FIFO index
+    }
+
+    // Store the current sample and move to next position
+    fifo[fifoIndex++] = sample;
+}
+
+void AudioPluginAudioProcessor::drawNextFrameOfSpectrum()
+{
+    // 1. Apply windowing function to reduce spectral leakage
+    window.multiplyWithWindowingTable(fftData, fftSize);
+
+    // 2. Perform the FFT (transforms time domain to frequency domain)
+    forwardFFT.performFrequencyOnlyForwardTransform(fftData);
+
+    // 3. Define dB range for visualization
+    auto mindB = -100.0f; // Minimum dB (silence)
+    auto maxdB = 0.0f;    // Maximum dB (full scale)
+
+    // 4. Process FFT results for display
+    for (int i = 0; i < scopeSize; ++i)
+    {
+        // Create logarithmic frequency scale (more natural for audio)
+        auto skewedProportionX = 1.0f - std::exp(std::log(1.0f - (float)i / (float)scopeSize) * 0.2f);
+
+        // Map display point to FFT bin with logarithmic scaling
+        auto fftDataIndex = juce::jlimit(0, fftSize / 2,
+            (int)(skewedProportionX * (float)fftSize * 0.5f));
+
+        // Convert FFT magnitude to dB and normalize to 0-1 range
+        auto level = juce::jmap(
+            juce::jlimit(mindB, maxdB,
+                juce::Decibels::gainToDecibels(fftData[fftDataIndex])
+                - juce::Decibels::gainToDecibels((float)fftSize)),
+            mindB, maxdB, 0.0f, 1.0f);
+
+        // Store processed value for display
+        scopeData[i] = level;
+    }
+}
+
 
 //==============================================================================
 bool AudioPluginAudioProcessor::hasEditor() const

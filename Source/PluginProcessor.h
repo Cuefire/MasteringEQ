@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_dsp/juce_dsp.h>
 
 //==============================================================================
 class AudioPluginAudioProcessor final : public juce::AudioProcessor
@@ -40,9 +41,33 @@ public:
 
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
-    void setStateInformation (const void* data, int sizeInBytes) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+    void getNextScopeData(float* destBuffer, int numPoints);
+
+    // Spectrum Analyzer Specific Public Methods
+    void pushNextSampleIntoFifo(float sample) noexcept;
+    void drawNextFrameOfSpectrum();
+    bool getNextFFTBlockReady() const { return nextFFTBlockReady; }
+    const float* getScopeData() const { return scopeData; }
+    int getScopeSize() const { return scopeSize; }
+    void setNextFFTBlockReady(bool ready) { nextFFTBlockReady = ready; }
 
 private:
     //==============================================================================
+
+    enum {
+        fftOrder = 11,
+        fftSize = 1 << fftOrder,
+        scopeSize = 512
+    };
+
+    juce::dsp::FFT forwardFFT;
+    juce::dsp::WindowingFunction<float> window;
+    float fifo[fftSize];
+    float fftData[2 * fftSize];
+    int fifoIndex = 0;
+    bool nextFFTBlockReady = false;
+    float scopeData[scopeSize];
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
 };

@@ -3,7 +3,8 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
+class AudioPluginAudioProcessorEditor : public juce::AudioProcessorEditor,
+    private juce::Timer
 {
 public:
     explicit AudioPluginAudioProcessorEditor(AudioPluginAudioProcessor&);
@@ -19,6 +20,15 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
+    // Timer callback for GUI updates
+    void timerCallback() override;
+
+    // Helper function to draw the spectrum
+    void drawFrame(juce::Graphics& g);
+
+    // Background grid drawing
+    void drawBackgroundGrid(juce::Graphics& g);
+
     AudioPluginAudioProcessor& processorRef;
 
     // Topbar einfügen
